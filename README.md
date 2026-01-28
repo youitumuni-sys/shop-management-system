@@ -1,36 +1,133 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shogun Manager - 風俗店舗管理システム
 
-## Getting Started
+風俗店舗の日常業務を効率化するための管理ダッシュボードアプリケーションです。
 
-First, run the development server:
+## 機能
+
+- **出勤管理**: 出勤スケジュールの確認とカレンダー表示
+- **写メ日記チェック**: キャストの写メ日記投稿状況の確認
+- **女の子管理**: キャスト情報の管理（レギュラー/レア/退店の自動分類）
+- **CityHeaven連携**: シティヘブンのアクセス統計取得
+- **イベント管理**: 店舗イベントの計画と管理
+- **TODO管理**: 日常タスクの管理
+- **リマインダー**: 定期見直し（イベント/パネル）のリマインダー
+
+## 技術スタック
+
+- **フレームワーク**: Next.js 14 (App Router)
+- **UI**: React, Tailwind CSS, shadcn/ui
+- **スクレイピング**: Puppeteer (ローカル環境のみ)
+- **データ保存**: JSONファイル (ローカル) / localStorage (Vercel)
+
+## セットアップ
+
+### 1. 依存関係のインストール
+
+```bash
+npm install
+```
+
+### 2. 環境変数の設定
+
+`.env.example` を `.env.local` にコピーして、必要な値を設定してください。
+
+```bash
+cp .env.example .env.local
+```
+
+### 3. 開発サーバーの起動
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000) でアプリケーションにアクセスできます。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Vercelへのデプロイ
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 制限事項
 
-## Learn More
+Vercel（サーバーレス環境）には以下の制限があります:
 
-To learn more about Next.js, take a look at the following resources:
+1. **スクレイピング機能は利用不可**: Puppeteerはサーバーレス環境で動作しません
+2. **ファイルシステムは読み取り専用**: JSONファイルへのデータ保存は永続化されません
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### デプロイ手順
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **GitHubリポジトリの作成とプッシュ**:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin https://github.com/your-username/your-repo.git
+   git push -u origin main
+   ```
 
-## Deploy on Vercel
+2. **Vercelでのプロジェクト作成**:
+   - [Vercel](https://vercel.com) にログイン
+   - "Add New" > "Project" をクリック
+   - GitHubリポジトリをインポート
+   - フレームワークは自動検出されます (Next.js)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. **環境変数の設定**:
+   Vercelのプロジェクト設定で以下の環境変数を設定してください:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   | 変数名 | 説明 |
+   |--------|------|
+   | `CITYHEAVEN_LOGIN_ID` | CityHeavenログインID |
+   | `CITYHEAVEN_PASSWORD` | CityHeavenパスワード |
+   | `CITYHEAVEN_SHOP_DIR` | CityHeavenショップディレクトリ |
+   | `SPARK_SCHEDULE_ID` | Sparkスケジュール ID |
+   | `SPARK_SCHEDULE_PASSWORD` | Sparkスケジュールパスワード |
+   | `SPARK_SCHEDULE_SHOP` | Sparkスケジュール店舗名 |
+
+   **注意**: これらの環境変数はスクレイピング機能用ですが、Vercelではスクレイピング自体が動作しないため、現時点では設定は必須ではありません。
+
+4. **デプロイ**:
+   - "Deploy" をクリックしてデプロイを開始
+   - ビルドが完了すると、デプロイURLが発行されます
+
+### 推奨運用方法
+
+Vercel環境でのスクレイピング機能の代替として、以下の運用を推奨します:
+
+1. **ローカルでスクレイピングを実行**:
+   - ローカル環境で `npm run dev` を起動
+   - スクレイピング機能を実行してデータを取得
+   - データは `data/` ディレクトリに保存されます
+
+2. **データのエクスポート/インポート**:
+   - 将来的には外部データベース（Vercel KV、Supabase等）との連携を検討
+
+3. **UIのみVercelで確認**:
+   - Vercelデプロイ版は主にUI確認用として使用
+   - 実運用はローカル環境で行う
+
+## ディレクトリ構造
+
+```
+app/
+├── src/
+│   ├── app/           # Next.js App Router
+│   │   ├── api/       # APIルート
+│   │   └── (pages)/   # 各ページ
+│   ├── components/    # Reactコンポーネント
+│   ├── hooks/         # カスタムフック
+│   └── lib/           # ユーティリティ・スクレイパー
+├── data/              # データ保存ディレクトリ（ローカルのみ）
+├── public/            # 静的ファイル
+└── vercel.json        # Vercel設定
+```
+
+## スクリプト
+
+| コマンド | 説明 |
+|----------|------|
+| `npm run dev` | 開発サーバー起動 |
+| `npm run build` | プロダクションビルド |
+| `npm run start` | プロダクションサーバー起動 |
+| `npm run lint` | ESLintによるコードチェック |
+
+## ライセンス
+
+Private - All rights reserved

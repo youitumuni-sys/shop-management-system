@@ -1,10 +1,33 @@
 "use client";
 
-import { useState, useCallback } from 'react';
-import { GirlContact, ContactHistory, ContactStatus, mockContacts } from '@/lib/mock-data/contacts';
+import { useState, useCallback, useEffect } from 'react';
+import { GirlContact, ContactHistory, ContactStatus } from '@/lib/mock-data/contacts';
+
+const STORAGE_KEY = 'contacts-data';
 
 export function useContacts() {
-  const [contacts, setContacts] = useState<GirlContact[]>(mockContacts);
+  const [contacts, setContacts] = useState<GirlContact[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // localStorageから読み込み
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setContacts(JSON.parse(saved));
+      } catch {
+        setContacts([]);
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // 変更時にlocalStorageに保存
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+    }
+  }, [contacts, isLoaded]);
 
   const addContact = useCallback((contact: Omit<GirlContact, 'id' | 'histories' | 'createdAt' | 'updatedAt'>) => {
     const newContact: GirlContact = {
@@ -52,6 +75,7 @@ export function useContacts() {
 
   return {
     contacts,
+    isLoaded,
     addContact,
     updateContact,
     updateStatus,

@@ -37,7 +37,6 @@ import { useTodos } from "@/hooks/useTodos";
 import { useGirls } from "@/hooks/useGirls";
 import { useContacts } from "@/hooks/useContacts";
 import { useDailyCheck } from "@/hooks/useDailyCheck";
-import { usePhotoDiary } from "@/hooks/usePhotoDiary";
 import { useCityHeaven } from "@/hooks/useCityHeaven";
 import { useReminders } from "@/hooks/useReminders";
 import { useEvents } from "@/hooks/useEvents";
@@ -50,7 +49,6 @@ export default function DashboardPage() {
   const { girls } = useGirls();
   const { contacts } = useContacts();
   const { stats: dailyStats } = useDailyCheck();
-  const { stats: photoStats } = usePhotoDiary();
   const { stats: cityHeavenStats, isLoading: cityHeavenLoading } = useCityHeaven();
   const { reminders, isLoading: remindersLoading, confirmReview, getMonthName } = useReminders();
   const { events } = useEvents();
@@ -66,8 +64,8 @@ export default function DashboardPage() {
     getProgressColor,
   } = useAttendanceTargets();
 
-  // スクレイピングデータから出勤情報を取得
-  const { data: scrapedData } = useScrapedPhotoDiary();
+  // スクレイピングデータから出勤情報と写メ日記情報を取得
+  const { data: scrapedData, stats: scrapedPhotoStats } = useScrapedPhotoDiary();
   const scrapedAttendance = useMemo(() => scrapedData?.attendance || [], [scrapedData]);
 
   // 目標設定モーダル用state
@@ -228,11 +226,11 @@ export default function DashboardPage() {
       title: "写メ日記",
       href: "/photo-diary",
       icon: Camera,
-      value: `${photoStats.postedCount}/${photoStats.totalPosts}`,
-      label: "投稿済み",
-      subValue: `完了 ${photoStats.completed}/${photoStats.total}名`,
-      color: photoStats.percentage === 100 ? "text-green-500" : "text-blue-500",
-      progress: photoStats.percentage,
+      value: scrapedPhotoStats ? `${scrapedPhotoStats.complete}/${scrapedPhotoStats.total}` : "-/-",
+      label: "3件達成",
+      subValue: scrapedPhotoStats ? `本日投稿 ${scrapedPhotoStats.todayPostCount}件` : "データ取得中",
+      color: scrapedPhotoStats?.percentage === 100 ? "text-green-500" : "text-blue-500",
+      progress: scrapedPhotoStats?.percentage ?? 0,
     },
     {
       title: "シティヘブン",
@@ -629,7 +627,7 @@ export default function DashboardPage() {
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
               <p className="text-2xl font-bold text-purple-500">
-                {photoStats.percentage}%
+                {scrapedPhotoStats?.percentage ?? 0}%
               </p>
               <p className="text-sm text-muted-foreground">写メ日記達成率</p>
             </div>

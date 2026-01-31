@@ -57,7 +57,7 @@ export function ConsultationChat() {
           { role: "assistant", content: `エラー: ${data.message}` },
         ]);
       }
-    } catch (error) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: "通信エラーが発生しました。" },

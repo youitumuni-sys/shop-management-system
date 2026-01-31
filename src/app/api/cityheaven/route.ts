@@ -4,6 +4,7 @@ import {
   closeCityHeavenBrowser,
   CityHeavenResult,
   GirlAccessStatsResult,
+  GirlDiaryStatsResult,
 } from "@/lib/scraper/cityheaven-scraper";
 import * as fs from "fs";
 import * as path from "path";
@@ -14,6 +15,7 @@ const IS_VERCEL = process.env.VERCEL === "1";
 // 結合されたデータ型
 export type CityHeavenResultWithStats = CityHeavenResult & {
   accessStats: GirlAccessStatsResult;
+  diaryStats: GirlDiaryStatsResult;
 };
 
 // データ保存先ファイルパス

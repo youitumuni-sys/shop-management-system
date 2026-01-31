@@ -29,6 +29,21 @@ export interface AccessStatsResult {
   scrapedAt: string;
 }
 
+export interface GirlDiaryStats {
+  name: string;
+  dailyDiary: { [date: string]: number };
+  monthlyTotal: number;
+  lastMonthTotal: number;
+  change: number;
+}
+
+export interface DiaryStatsResult {
+  year: number;
+  month: number;
+  girls: GirlDiaryStats[];
+  scrapedAt: string;
+}
+
 export interface CityHeavenStats {
   totalGirls: number;
   publishedCount: number;
@@ -42,6 +57,7 @@ export interface CityHeavenData {
   stats: CityHeavenStats;
   girls: CityHeavenGirl[];
   accessStats?: AccessStatsResult;
+  diaryStats?: DiaryStatsResult;
 }
 
 // 写メ日記関連の型定義
@@ -186,6 +202,7 @@ export function useCityHeaven() {
     girls: data?.girls || [],
     stats: data?.stats || null,
     accessStats: data?.accessStats || null,
+    diaryStats: data?.diaryStats || null,
     photoDiaryData,
     todayDiaryCountMap,
     isLoading,

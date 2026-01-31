@@ -37,6 +37,27 @@ export interface GirlAccessStatsResult {
   scrapedAt: string;
 }
 
+/**
+ * 女の子別日記投稿統計情報
+ */
+export interface GirlDiaryStats {
+  name: string;
+  dailyDiary: { [date: string]: number }; // 日別日記投稿数 (例: "01/01": 3)
+  monthlyTotal: number; // 今月合計
+  lastMonthTotal: number; // 先月合計
+  change: number; // 増減
+}
+
+/**
+ * 女の子別日記統計の取得結果
+ */
+export interface GirlDiaryStatsResult {
+  year: number;
+  month: number;
+  girls: GirlDiaryStats[];
+  scrapedAt: string;
+}
+
 export interface CityHeavenStats {
   totalGirls: number;
   publishedCount: number;
@@ -431,9 +452,149 @@ export async function scrapeGirlAccessStats(): Promise<GirlAccessStatsResult> {
 }
 
 /**
- * 女の子情報とアクセス統計を結合して取得する
+ * 女の子別日記投稿統計を取得する
+ * C2TokeiDiary.php から日別・女の子別の日記投稿数を取得
  */
-export async function scrapeGirlsInfoWithStats(): Promise<CityHeavenResult & { accessStats: GirlAccessStatsResult }> {
+export async function scrapeGirlDiaryStats(): Promise<GirlDiaryStatsResult> {
+  const browserInstance = await getBrowser();
+  const page = await browserInstance.newPage();
+  const shopDir = process.env.CITYHEAVEN_SHOP_DIR;
+
+  try {
+    // ログイン
+    if (!isLoggedIn) {
+      const loggedIn = await login(page);
+      if (!loggedIn) {
+        throw new Error("ログインに失敗しました");
+      }
+    }
+
+    // 女の子別日記統計ページへ移動
+    await page.goto(`${BASE_URL}/C2TokeiDiary.php?shopdir=${shopDir}`, {
+      waitUntil: "networkidle2",
+      timeout: 30000,
+    });
+
+    // テーブルから統計データを抽出
+    const statsData = await page.evaluate(() => {
+      const table = document.querySelector("table");
+      if (!table) return null;
+
+      const rows = table.querySelectorAll("tr");
+      if (rows.length < 2) return null;
+
+      // ヘッダー行から年月と女の子名を取得
+      const headerRow = rows[0];
+      const headerCells = headerRow.querySelectorAll("th");
+
+      let yearMonth = "";
+      const girlNames: string[] = [];
+
+      headerCells.forEach((th, idx) => {
+        const text = th.textContent?.trim() || "";
+        if (idx === 0) {
+          yearMonth = text;
+        } else {
+          girlNames.push(text);
+        }
+      });
+
+      // 年と月を抽出
+      const yearMatch = yearMonth.match(/(\d+)年/);
+      const monthMatch = yearMonth.match(/(\d+)月/);
+      const year = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
+      const month = monthMatch ? parseInt(monthMatch[1]) : new Date().getMonth() + 1;
+
+      // 各女の子のデータを初期化
+      const girlsData: {
+        name: string;
+        dailyDiary: { [key: string]: number };
+        monthlyTotal: number;
+        lastMonthTotal: number;
+        change: number;
+      }[] = girlNames.map((name) => ({
+        name,
+        dailyDiary: {},
+        monthlyTotal: 0,
+        lastMonthTotal: 0,
+        change: 0,
+      }));
+
+      // データ行を処理
+      for (let rowIdx = 1; rowIdx < rows.length; rowIdx++) {
+        const row = rows[rowIdx];
+        const rowHeader = row.querySelector("th");
+        const rowLabel = rowHeader?.textContent?.trim() || "";
+        const cells = row.querySelectorAll("td");
+
+        // 日付行を判定（MM/DD形式）
+        const dateMatch = rowLabel.match(/(\d{2}\/\d{2})/);
+
+        if (dateMatch) {
+          // 日別データ
+          const dateKey = dateMatch[1];
+          cells.forEach((td, cellIdx) => {
+            if (cellIdx < girlsData.length) {
+              const value = td.textContent?.trim() || "0";
+              const numValue = value === "---" ? 0 : parseInt(value) || 0;
+              girlsData[cellIdx].dailyDiary[dateKey] = numValue;
+            }
+          });
+        } else if (rowLabel === "合計" || rowLabel.includes("合計")) {
+          cells.forEach((td, cellIdx) => {
+            if (cellIdx < girlsData.length) {
+              const value = td.textContent?.trim() || "0";
+              girlsData[cellIdx].monthlyTotal = parseInt(value) || 0;
+            }
+          });
+        } else if (rowLabel === "今月" || rowLabel.includes("今月")) {
+          cells.forEach((td, cellIdx) => {
+            if (cellIdx < girlsData.length) {
+              const value = td.textContent?.trim() || "0";
+              girlsData[cellIdx].monthlyTotal = parseInt(value) || 0;
+            }
+          });
+        } else if (rowLabel === "先月" || rowLabel.includes("先月")) {
+          cells.forEach((td, cellIdx) => {
+            if (cellIdx < girlsData.length) {
+              const value = td.textContent?.trim() || "0";
+              girlsData[cellIdx].lastMonthTotal = parseInt(value) || 0;
+            }
+          });
+        } else if (rowLabel === "増減" || rowLabel.includes("増減")) {
+          cells.forEach((td, cellIdx) => {
+            if (cellIdx < girlsData.length) {
+              const value = td.textContent?.trim() || "0";
+              girlsData[cellIdx].change = parseInt(value) || 0;
+            }
+          });
+        }
+      }
+
+      return {
+        year,
+        month,
+        girls: girlsData,
+      };
+    });
+
+    if (!statsData) {
+      throw new Error("日記統計データを取得できませんでした");
+    }
+
+    return {
+      ...statsData,
+      scrapedAt: new Date().toISOString(),
+    };
+  } finally {
+    await page.close();
+  }
+}
+
+/**
+ * 女の子情報とアクセス統計・日記統計を結合して取得する
+ */
+export async function scrapeGirlsInfoWithStats(): Promise<CityHeavenResult & { accessStats: GirlAccessStatsResult; diaryStats: GirlDiaryStatsResult }> {
   const browserInstance = await getBrowser();
   const page = await browserInstance.newPage();
   const shopDir = process.env.CITYHEAVEN_SHOP_DIR;
@@ -605,14 +766,117 @@ export async function scrapeGirlsInfoWithStats(): Promise<CityHeavenResult & { a
       return { year, month, girls: girlsData };
     });
 
-    // 女の子情報にアクセス統計をマージ
-    const girlsWithAccess = girls.map((girl) => {
+    // 女の子別日記統計ページへ移動
+    await page.goto(`${BASE_URL}/C2TokeiDiary.php?shopdir=${shopDir}`, {
+      waitUntil: "networkidle2",
+      timeout: 30000,
+    });
+
+    // 日記統計を取得
+    const diaryStatsData = await page.evaluate(() => {
+      const table = document.querySelector("table");
+      if (!table) return null;
+
+      const rows = table.querySelectorAll("tr");
+      if (rows.length < 2) return null;
+
+      const headerRow = rows[0];
+      const headerCells = headerRow.querySelectorAll("th");
+
+      let yearMonth = "";
+      const girlNames: string[] = [];
+
+      headerCells.forEach((th, idx) => {
+        const text = th.textContent?.trim() || "";
+        if (idx === 0) {
+          yearMonth = text;
+        } else {
+          girlNames.push(text);
+        }
+      });
+
+      const yearMatch = yearMonth.match(/(\d+)年/);
+      const monthMatch = yearMonth.match(/(\d+)月/);
+      const year = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
+      const month = monthMatch ? parseInt(monthMatch[1]) : new Date().getMonth() + 1;
+
+      const girlsData: {
+        name: string;
+        dailyDiary: { [key: string]: number };
+        monthlyTotal: number;
+        lastMonthTotal: number;
+        change: number;
+      }[] = girlNames.map((name) => ({
+        name,
+        dailyDiary: {},
+        monthlyTotal: 0,
+        lastMonthTotal: 0,
+        change: 0,
+      }));
+
+      for (let rowIdx = 1; rowIdx < rows.length; rowIdx++) {
+        const row = rows[rowIdx];
+        const rowHeader = row.querySelector("th");
+        const rowLabel = rowHeader?.textContent?.trim() || "";
+        const cells = row.querySelectorAll("td");
+
+        const dateMatch = rowLabel.match(/(\d{2}\/\d{2})/);
+
+        if (dateMatch) {
+          const dateKey = dateMatch[1];
+          cells.forEach((td, cellIdx) => {
+            if (cellIdx < girlsData.length) {
+              const value = td.textContent?.trim() || "0";
+              const numValue = value === "---" ? 0 : parseInt(value) || 0;
+              girlsData[cellIdx].dailyDiary[dateKey] = numValue;
+            }
+          });
+        } else if (rowLabel === "合計" || rowLabel.includes("合計")) {
+          cells.forEach((td, cellIdx) => {
+            if (cellIdx < girlsData.length) {
+              const value = td.textContent?.trim() || "0";
+              girlsData[cellIdx].monthlyTotal = parseInt(value) || 0;
+            }
+          });
+        } else if (rowLabel === "今月" || rowLabel.includes("今月")) {
+          cells.forEach((td, cellIdx) => {
+            if (cellIdx < girlsData.length) {
+              const value = td.textContent?.trim() || "0";
+              girlsData[cellIdx].monthlyTotal = parseInt(value) || 0;
+            }
+          });
+        } else if (rowLabel === "先月" || rowLabel.includes("先月")) {
+          cells.forEach((td, cellIdx) => {
+            if (cellIdx < girlsData.length) {
+              const value = td.textContent?.trim() || "0";
+              girlsData[cellIdx].lastMonthTotal = parseInt(value) || 0;
+            }
+          });
+        } else if (rowLabel === "増減" || rowLabel.includes("増減")) {
+          cells.forEach((td, cellIdx) => {
+            if (cellIdx < girlsData.length) {
+              const value = td.textContent?.trim() || "0";
+              girlsData[cellIdx].change = parseInt(value) || 0;
+            }
+          });
+        }
+      }
+
+      return { year, month, girls: girlsData };
+    });
+
+    // 女の子情報にアクセス統計と日記統計をマージ
+    const girlsWithStats = girls.map((girl) => {
       const accessStat = accessStatsData?.girls.find(
+        (stat) => stat.name === girl.name
+      );
+      const diaryStat = diaryStatsData?.girls.find(
         (stat) => stat.name === girl.name
       );
       return {
         ...girl,
         accessCount: accessStat?.monthlyTotal,
+        diaryCount: diaryStat?.monthlyTotal,
       };
     });
 
@@ -623,12 +887,25 @@ export async function scrapeGirlsInfoWithStats(): Promise<CityHeavenResult & { a
         nonPublishedCount: stats.totalNonPublished,
         scrapedAt: new Date().toISOString(),
       },
-      girls: girlsWithAccess,
+      girls: girlsWithStats,
       accessStats: accessStatsData
         ? {
             year: accessStatsData.year,
             month: accessStatsData.month,
             girls: accessStatsData.girls,
+            scrapedAt: new Date().toISOString(),
+          }
+        : {
+            year: new Date().getFullYear(),
+            month: new Date().getMonth() + 1,
+            girls: [],
+            scrapedAt: new Date().toISOString(),
+          },
+      diaryStats: diaryStatsData
+        ? {
+            year: diaryStatsData.year,
+            month: diaryStatsData.month,
+            girls: diaryStatsData.girls,
             scrapedAt: new Date().toISOString(),
           }
         : {

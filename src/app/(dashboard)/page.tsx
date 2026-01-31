@@ -44,7 +44,6 @@ import { useAttendanceTargets, DayType, isEventDay } from "@/hooks/useAttendance
 import { useScrapedPhotoDiary } from "@/hooks/useScrapedPhotoDiary";
 import { AttendanceCalendar } from "@/components/attendance-calendar";
 import { NoticeBoard } from "@/components/notice-board";
-import { ConsultationChat } from "@/components/consultation-chat";
 
 export default function DashboardPage() {
   const { stats: todoStats } = useTodos();
@@ -261,9 +260,6 @@ export default function DashboardPage() {
 
       {/* 連絡事項 */}
       <NoticeBoard />
-
-      {/* 相談口（AI アシスタント） */}
-      <ConsultationChat />
 
       {/* 本日の出勤状況カード */}
       <Card className="border-2 border-primary/20">

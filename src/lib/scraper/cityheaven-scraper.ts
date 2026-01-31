@@ -873,10 +873,14 @@ export async function scrapeGirlsInfoWithStats(): Promise<CityHeavenResult & { a
       const diaryStat = diaryStatsData?.girls.find(
         (stat) => stat.name === girl.name
       );
+      // 日記数は日別データの合計を使用（monthlyTotalが不正確なため）
+      const diaryTotal = diaryStat
+        ? Object.values(diaryStat.dailyDiary).reduce((sum, val) => sum + val, 0)
+        : 0;
       return {
         ...girl,
         accessCount: accessStat?.monthlyTotal,
-        diaryCount: diaryStat?.monthlyTotal,
+        diaryCount: diaryTotal,
       };
     });
 

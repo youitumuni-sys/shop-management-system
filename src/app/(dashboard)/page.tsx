@@ -43,6 +43,7 @@ import { useEvents } from "@/hooks/useEvents";
 import { useAttendanceTargets, DayType, isEventDay } from "@/hooks/useAttendanceTargets";
 import { useScrapedPhotoDiary } from "@/hooks/useScrapedPhotoDiary";
 import { AttendanceCalendar } from "@/components/attendance-calendar";
+import { NoticeBoard } from "@/components/notice-board";
 
 export default function DashboardPage() {
   const { stats: todoStats } = useTodos();
@@ -256,6 +257,9 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold tracking-tight">ダッシュボード</h1>
         <p className="text-muted-foreground">本日の業務状況を確認できます</p>
       </div>
+
+      {/* 連絡事項 */}
+      <NoticeBoard />
 
       {/* 本日の出勤状況カード */}
       <Card className="border-2 border-primary/20">

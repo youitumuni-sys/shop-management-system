@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
 import { useAttendanceSchedule } from "@/hooks/useAttendanceSchedule";
 import { useScrapedPhotoDiary } from "@/hooks/useScrapedPhotoDiary";
 import {

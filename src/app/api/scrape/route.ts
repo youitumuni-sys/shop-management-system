@@ -13,6 +13,17 @@ const DATA_FILE = path.join(DATA_DIR, "scraping-result.json");
 // スクレイピング実行中フラグ（メモリ内）
 let isRunning = false;
 
+// 今日の日付を取得（日本時間、YYYY-MM-DD形式）
+function getTodayDateJST(): string {
+  const now = new Date();
+  const jstOffset = 9 * 60; // JST is UTC+9
+  const jstTime = new Date(now.getTime() + jstOffset * 60 * 1000);
+  const year = jstTime.getUTCFullYear();
+  const month = jstTime.getUTCMonth() + 1;
+  const day = jstTime.getUTCDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 // データ保存ディレクトリを確認・作成
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -49,6 +60,18 @@ export async function GET() {
   const savedData = loadSavedData();
 
   if (savedData) {
+    // 今日の日付と比較し、古いデータは返さない
+    const todayJST = getTodayDateJST();
+    if (savedData.targetDate && savedData.targetDate !== todayJST) {
+      return NextResponse.json({
+        success: true,
+        data: null,
+        message: `保存済みデータは${savedData.targetDate}のものです。本日(${todayJST})のデータを取得するにはスクレイピングを実行してください。`,
+        outdated: true,
+        savedTargetDate: savedData.targetDate,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: savedData,

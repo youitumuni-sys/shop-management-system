@@ -33,6 +33,7 @@ export interface AttendanceInfo {
 
 export interface ScrapingData {
   scrapedAt: string;
+  targetDate?: string; // YYYY-MM-DD形式（対象日付）
   attendance?: AttendanceInfo[];
   checkResults: PhotoDiaryCheckResult[];
   unmatchedAuthors?: UnmatchedDiaryAuthor[];

@@ -33,6 +33,7 @@ export interface UnmatchedDiaryAuthor {
 
 export interface ScrapingResult {
   scrapedAt: string;
+  targetDate: string; // YYYY-MM-DD形式（対象日付）
   attendance: AttendanceInfo[];
   photoDiaries: PhotoDiaryPost[];
   checkResults: PhotoDiaryCheckResult[];
@@ -303,9 +304,12 @@ export async function checkPhotoDiaries(): Promise<ScrapingResult> {
   const now = new Date();
   const jstOffset = 9 * 60; // JST is UTC+9
   const jstTime = new Date(now.getTime() + jstOffset * 60 * 1000);
+  const todayYear = jstTime.getUTCFullYear();
   const todayMonth = jstTime.getUTCMonth() + 1;
   const todayDay = jstTime.getUTCDate();
   const todayStr = `${todayMonth}/${todayDay}`;
+  // 対象日付（YYYY-MM-DD形式）
+  const targetDate = `${todayYear}-${String(todayMonth).padStart(2, "0")}-${String(todayDay).padStart(2, "0")}`;
 
   // 本日の投稿のみをフィルタリング
   const todayPosts = photoDiaries.filter((post) => {
@@ -368,6 +372,7 @@ export async function checkPhotoDiaries(): Promise<ScrapingResult> {
 
   return {
     scrapedAt,
+    targetDate,
     attendance,
     photoDiaries: todayPosts, // 本日の投稿のみ返す
     checkResults,

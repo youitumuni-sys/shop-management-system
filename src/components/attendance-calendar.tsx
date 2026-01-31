@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Users, Camera, ClipboardCheck, Moon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Users, Camera, ClipboardCheck, Moon, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,10 +28,14 @@ interface DayMetrics {
   nightCount: number | null;
   nightTarget: number;
   nightRate: number | null;
-  // 写メ日記
+  // 写メ日記（3件達成）
   photoDiaryComplete: number | null;
   photoDiaryTotal: number | null;
   photoDiaryRate: number | null;
+  // 写メ日記（総投稿数）
+  photoDiaryPostCount: number | null;
+  photoDiaryPostTarget: number;
+  photoDiaryPostRate: number | null;
   // 日次チェック
   dailyCheckComplete: number | null;
   dailyCheckTotal: number | null;
@@ -154,6 +158,9 @@ export function AttendanceCalendar() {
       let photoDiaryComplete: number | null = null;
       let photoDiaryTotal: number | null = null;
       let photoDiaryRate: number | null = null;
+      let photoDiaryPostCount: number | null = null;
+      const photoDiaryPostTarget = 100; // 目標投稿数
+      let photoDiaryPostRate: number | null = null;
       let dailyCheckComplete: number | null = null;
       let dailyCheckTotal: number | null = null;
       let dailyCheckRate: number | null = null;
@@ -163,6 +170,8 @@ export function AttendanceCalendar() {
           photoDiaryComplete = scrapedPhotoStats.complete;
           photoDiaryTotal = scrapedPhotoStats.total;
           photoDiaryRate = scrapedPhotoStats.percentage;
+          photoDiaryPostCount = scrapedPhotoStats.todayPostCount;
+          photoDiaryPostRate = scrapedPhotoStats.targetAchievementRate;
         }
         if (dailyStats) {
           dailyCheckComplete = dailyStats.completed;
@@ -176,6 +185,7 @@ export function AttendanceCalendar() {
       if (attendanceRate !== null) rates.push(attendanceRate);
       if (nightRate !== null) rates.push(nightRate);
       if (photoDiaryRate !== null) rates.push(photoDiaryRate);
+      if (photoDiaryPostRate !== null) rates.push(photoDiaryPostRate);
       if (dailyCheckRate !== null) rates.push(dailyCheckRate);
       const overallRate = rates.length > 0
         ? Math.round(rates.reduce((a, b) => a + b, 0) / rates.length)
@@ -198,6 +208,9 @@ export function AttendanceCalendar() {
           photoDiaryComplete,
           photoDiaryTotal,
           photoDiaryRate,
+          photoDiaryPostCount,
+          photoDiaryPostTarget,
+          photoDiaryPostRate,
           dailyCheckComplete,
           dailyCheckTotal,
           dailyCheckRate,
@@ -311,7 +324,11 @@ export function AttendanceCalendar() {
             </div>
             <div className="flex items-center gap-1">
               <Camera className="h-3 w-3 text-pink-500" />
-              <span>写メ日記</span>
+              <span>3件達成</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <FileText className="h-3 w-3 text-purple-500" />
+              <span>日記数</span>
             </div>
             <div className="flex items-center gap-1">
               <ClipboardCheck className="h-3 w-3 text-emerald-500" />
@@ -385,12 +402,16 @@ export function AttendanceCalendar() {
                         <Moon className="h-2 w-2" />
                         <span>{day.metrics.nightRate ?? "-"}%</span>
                       </div>
-                      {/* 今日のみ写メ日記・日次チェック */}
+                      {/* 今日のみ写メ日記・日記数・日次チェック */}
                       {day.isToday && (
                         <>
                           <div className={`flex items-center gap-0.5 ${getRateColorClass(day.metrics.photoDiaryRate)}`}>
                             <Camera className="h-2 w-2" />
                             <span>{day.metrics.photoDiaryRate ?? "-"}%</span>
+                          </div>
+                          <div className={`flex items-center gap-0.5 ${getRateColorClass(day.metrics.photoDiaryPostRate)}`}>
+                            <FileText className="h-2 w-2" />
+                            <span>{day.metrics.photoDiaryPostCount ?? "-"}</span>
                           </div>
                           <div className={`flex items-center gap-0.5 ${getRateColorClass(day.metrics.dailyCheckRate)}`}>
                             <ClipboardCheck className="h-2 w-2" />
@@ -469,14 +490,24 @@ export function AttendanceCalendar() {
 
                 {/* 写メ日記（今日のみ） */}
                 {selectedDay.isToday && (
-                  <MetricRow
-                    icon={<Camera className="h-4 w-4 text-pink-500" />}
-                    label="写メ日記3件達成"
-                    current={selectedDay.metrics.photoDiaryComplete}
-                    target={selectedDay.metrics.photoDiaryTotal}
-                    rate={selectedDay.metrics.photoDiaryRate}
-                    unit="人"
-                  />
+                  <>
+                    <MetricRow
+                      icon={<Camera className="h-4 w-4 text-pink-500" />}
+                      label="写メ日記3件達成"
+                      current={selectedDay.metrics.photoDiaryComplete}
+                      target={selectedDay.metrics.photoDiaryTotal}
+                      rate={selectedDay.metrics.photoDiaryRate}
+                      unit="人"
+                    />
+                    <MetricRow
+                      icon={<FileText className="h-4 w-4 text-purple-500" />}
+                      label="日記総投稿数"
+                      current={selectedDay.metrics.photoDiaryPostCount}
+                      target={selectedDay.metrics.photoDiaryPostTarget}
+                      rate={selectedDay.metrics.photoDiaryPostRate}
+                      unit="件"
+                    />
+                  </>
                 )}
 
                 {/* 日次チェック（今日のみ） */}

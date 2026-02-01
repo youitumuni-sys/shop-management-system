@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { ShopEvent, EventStatus, mockEvents } from "@/lib/mock-data/events";
 
-const STORAGE_KEY = "shop-events-data";
+const STORAGE_KEY = "shop-events-data-v2";
 
 function loadEventsFromStorage(): ShopEvent[] | null {
   if (typeof window === "undefined") return null;

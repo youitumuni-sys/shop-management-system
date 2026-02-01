@@ -1,19 +1,37 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { RefreshCw, Users, Eye, TrendingUp, BookOpen, ArrowUp, ArrowDown, ArrowUpDown, Camera } from "lucide-react";
+import { RefreshCw, Users, Eye, TrendingUp, BookOpen, ArrowUp, ArrowDown, ArrowUpDown, Camera, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useCityHeaven, GirlAccessStats } from "@/hooks/useCityHeaven";
 
 type SortKey = "access" | "change" | "name" | "diary";
 type SortOrder = "asc" | "desc";
 
+// 月表示用のフォーマット関数
+function formatMonth(yearMonth: string): string {
+  const [year, month] = yearMonth.split("-");
+  return `${year}年${parseInt(month)}月`;
+}
+
 export default function CityHeavenPage() {
-  const { girls, stats, accessStats, todayDiaryCountMap, isLoading, error, lastFetched, runScraping } =
-    useCityHeaven();
+  const {
+    girls,
+    stats,
+    accessStats,
+    todayDiaryCountMap,
+    isLoading,
+    error,
+    lastFetched,
+    availableMonths,
+    selectedMonth,
+    changeMonth,
+    runScraping
+  } = useCityHeaven();
 
   // 本日の日記投稿数マップをメモ化
   const diaryCountMap = useMemo(() => todayDiaryCountMap(), [todayDiaryCountMap]);
@@ -104,6 +122,25 @@ export default function CityHeavenPage() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          {availableMonths.length > 0 && (
+            <Select
+              value={selectedMonth || ""}
+              onValueChange={(value) => changeMonth(value)}
+              disabled={isLoading}
+            >
+              <SelectTrigger className="w-[140px]">
+                <Calendar className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="月を選択" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableMonths.map((month) => (
+                  <SelectItem key={month} value={month}>
+                    {formatMonth(month)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {lastFetched && (
             <span className="text-sm text-muted-foreground">
               最終更新: {formatTime(lastFetched)}

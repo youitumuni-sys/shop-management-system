@@ -60,6 +60,14 @@ export interface CityHeavenData {
   diaryStats?: DiaryStatsResult;
 }
 
+export interface CityHeavenApiResponse {
+  success: boolean;
+  data: CityHeavenData | null;
+  availableMonths?: string[];
+  currentMonth?: string;
+  message?: string;
+}
+
 // 写メ日記関連の型定義
 export interface PhotoDiaryPost {
   name: string;
@@ -97,6 +105,8 @@ export function useCityHeaven() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
   // 写メ日記データを取得
   const fetchPhotoDiaries = useCallback(async () => {
@@ -112,22 +122,28 @@ export function useCityHeaven() {
     }
   }, []);
 
-  // 最新結果を取得
-  const fetchLatest = useCallback(async () => {
+  // 特定の月のデータを取得
+  const fetchMonth = useCallback(async (month?: string) => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // CityHeavenデータと写メ日記データを並行して取得
+      const url = month ? `/api/cityheaven?month=${month}` : "/api/cityheaven";
       const [cityheavenRes] = await Promise.all([
-        fetch("/api/cityheaven"),
+        fetch(url),
         fetchPhotoDiaries(),
       ]);
 
-      const json = await cityheavenRes.json();
+      const json: CityHeavenApiResponse = await cityheavenRes.json();
 
-      if (json.success && json.data) {
+      if (json.success) {
         setData(json.data);
+        if (json.availableMonths) {
+          setAvailableMonths(json.availableMonths);
+        }
+        if (json.currentMonth) {
+          setSelectedMonth(json.currentMonth);
+        }
         setLastFetched(new Date());
       }
     } catch (err) {
@@ -137,6 +153,17 @@ export function useCityHeaven() {
     }
   }, [fetchPhotoDiaries]);
 
+  // 最新結果を取得
+  const fetchLatest = useCallback(async () => {
+    await fetchMonth();
+  }, [fetchMonth]);
+
+  // 月を切り替え
+  const changeMonth = useCallback(async (month: string) => {
+    setSelectedMonth(month);
+    await fetchMonth(month);
+  }, [fetchMonth]);
+
   // スクレイピング実行
   const runScraping = useCallback(async () => {
     try {
@@ -144,10 +171,16 @@ export function useCityHeaven() {
       setError(null);
 
       const res = await fetch("/api/cityheaven", { method: "POST" });
-      const json = await res.json();
+      const json: CityHeavenApiResponse & { currentMonth?: string } = await res.json();
 
       if (json.success && json.data) {
         setData(json.data);
+        if (json.availableMonths) {
+          setAvailableMonths(json.availableMonths);
+        }
+        if (json.currentMonth) {
+          setSelectedMonth(json.currentMonth);
+        }
         setLastFetched(new Date());
         // 写メ日記データも再取得
         await fetchPhotoDiaries();
@@ -208,7 +241,10 @@ export function useCityHeaven() {
     isLoading,
     error,
     lastFetched,
+    availableMonths,
+    selectedMonth,
     fetchLatest,
+    changeMonth,
     runScraping,
   };
 }

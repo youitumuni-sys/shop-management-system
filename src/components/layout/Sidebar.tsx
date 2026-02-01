@@ -14,6 +14,7 @@ import {
   PartyPopper,
   BarChart3,
   FolderKanban,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +68,11 @@ const navItems = [
     label: "プロジェクト管理",
     href: "/projects",
     icon: FolderKanban,
+  },
+  {
+    label: "緊急対応マニュアル",
+    href: "/emergency-manual",
+    icon: AlertTriangle,
   },
   {
     label: "設定",
